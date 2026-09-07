@@ -23,6 +23,12 @@ dev = [
     "pytest-cov>=4.1.0",
 ]
 
+[project.scripts]
+ai-sec-agent = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli"]
+
 [tool.setuptools.packages.find]
 include = ["agent*", "tools*", "report*"]
 

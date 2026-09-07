@@ -1,0 +1,12 @@
+# AI Security & QA Agent
+# Core runtime deps
+openai>=1.40.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+rich>=13.7.0
+pydantic>=2.6.0
+GitPython>=3.1.0
+
+# Dev / test deps
+pytest>=8.0.0
+pytest-cov>=4.1.0

@@ -1,0 +1,3 @@
+# Deliberately old / known vulnerable versions (for testing deps scan)
+requests==2.19.0
+flask==1.0.2

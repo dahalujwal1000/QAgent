@@ -1,5 +1,24 @@
-"""Tool wrappers — each wraps a real external CLI/checker."""
+"""Tool wrappers — each wraps a real external CLI/checker.
 
-from tools.base import ToolError, ToolRegistry, ToolResult, run_cmd
+Exports the shared base plumbing for tool modules.
+"""
 
-__all__ = ["ToolError", "ToolRegistry", "ToolResult", "run_cmd"]
+from tools.base import (
+    Tool,
+    ToolError,
+    ToolRegistry,
+    ToolResult,
+    ToolSpec,
+    parse_json_output,
+    run_cmd,
+)
+
+__all__ = [
+    "Tool",
+    "ToolError",
+    "ToolRegistry",
+    "ToolResult",
+    "ToolSpec",
+    "parse_json_output",
+    "run_cmd",
+]

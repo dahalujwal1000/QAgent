@@ -19,3 +19,5 @@ dist/
 Thumbs.db
 .idea/
 .vscode/
+# Agent output
+agent_report.txt

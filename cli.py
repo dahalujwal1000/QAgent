@@ -66,6 +66,8 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true", help="Show raw output")
     parser.add_argument("--no-llm", action="store_true",
                         help="Skip LLM; run tools deterministically")
+    parser.add_argument("--model", default=None,
+                        help="OpenRouter model id (overrides OPENROUTER_MODEL)")
     args = parser.parse_args()
 
     path, tmp = resolve_target(args.target)
@@ -83,6 +85,8 @@ def main() -> None:
 
     registry = build_default_registry()
     config = get_config()
+    if args.model:
+        config.model = args.model
 
     report_text = ""
     if args.no_llm or not config.has_key():

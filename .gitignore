@@ -21,3 +21,7 @@ Thumbs.db
 .vscode/
 # Agent output
 agent_report.txt
+
+run_v4flash.log
+
+run_norvic.log

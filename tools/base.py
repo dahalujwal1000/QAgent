@@ -116,7 +116,7 @@ class ToolRegistry:
     def __init__(self):
         self._tools = {}
 
-    def register(self, spec: ToolSpec, func: Callable) -> ToolRegistry:
+    def register(self, spec: ToolSpec, func: Callable) -> "ToolRegistry":
 
         """Register a tool and return self (for chaining."""
         if spec.name in self._tools:

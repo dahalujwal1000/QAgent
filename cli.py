@@ -39,22 +39,26 @@ def resolve_target(target: str) -> tuple[str, str | None]:
 
 
 def run_deterministic(profile: ProjectProfile, registry: ToolRegistry,
-                      url: str | None) -> list:
+                      url: str | None) -> tuple[list, list]:
     """No-API-key fallback: run every relevant tool in fixed order."""
     findings = []
+    results = []
+    for name, args in _plan(profile, url):
+        r = registry.dispatch(name, args)
+        results.append(r.to_dict())
+        findings += r.findings
+    return findings, results
+
+
+def _plan(profile: ProjectProfile, url: str | None):
     if profile.is_website and url:
-        r = registry.dispatch("crawl_links", {"start_url": url})
-        findings += r.findings
+        yield "crawl_links", {"start_url": url}
     if profile.is_python:
-        r = registry.dispatch("bandit_scan", {"path": profile.path})
-        findings += r.findings
+        yield "bandit_scan", {"path": profile.path}
     if profile.package_manager in ("pip", "npm"):
-        r = registry.dispatch("deps_scan", {"path": profile.path})
-        findings += r.findings
+        yield "deps_scan", {"path": profile.path}
     if profile.test_runner != "none":
-        r = registry.dispatch("run_tests", {"path": profile.path})
-        findings += r.findings
-    return findings
+        yield "run_tests", {"path": profile.path}
 
 
 def main() -> None:
@@ -68,6 +72,9 @@ def main() -> None:
                         help="Skip LLM; run tools deterministically")
     parser.add_argument("--model", default=None,
                         help="OpenRouter model id (overrides OPENROUTER_MODEL)")
+    parser.add_argument("--json", metavar="PATH", default=None,
+                        help="Write the full report (ranked findings, counts, "
+                             "raw tool outputs) to a JSON file")
     args = parser.parse_args()
 
     path, tmp = resolve_target(args.target)
@@ -89,11 +96,12 @@ def main() -> None:
         config.model = args.model
 
     report_text = ""
+    raw_results = []
     if args.no_llm or not config.has_key():
         if not config.has_key():
             console.print("[yellow]No OPENROUTER_API_KEY set — deterministic "
                           "mode (raw tool findings, no plain-English report).[/]")
-        findings = run_deterministic(profile, registry, url)
+        findings, raw_results = run_deterministic(profile, registry, url)
     else:
         from agent.llm import LLMClient
         try:
@@ -110,9 +118,29 @@ def main() -> None:
             for e in state.errors:
                 console.print(f"[red]error:[/] {e}")
             findings = state.findings
+            raw_results = state.results
             report_text = getattr(state, "final_report", "")
 
-    render(rank(findings), report_text, verbose=args.verbose)
+    ranked = rank(findings)
+    render(ranked, report_text, verbose=args.verbose, raw_count=len(findings))
+
+    if args.json:
+        import json
+        from report.ranker import counts as rank_counts
+        export = {
+            "target": args.target,
+            "profile": profile.summary(),
+            "model": config.model if not args.no_llm else None,
+            "counts": rank_counts(ranked),
+            "raw_finding_count": len(findings),
+            "unique_finding_count": len(ranked),
+            "ranked_findings": ranked,
+            "report": report_text,
+            "raw_tool_results": raw_results,
+        }
+        with open(args.json, "w", encoding="utf-8") as fh:
+            json.dump(export, fh, indent=2, default=str)
+        console.print(f"[bold green]Full report exported to {args.json}[/]")
 
     if tmp:
         shutil.rmtree(tmp, ignore_errors=True)

@@ -12,6 +12,7 @@ import json
 from agent.detect import ProjectProfile
 from agent.llm import LLMClient, parse_tool_args
 from agent.state import AgentState
+from report.ranker import counts as rank_counts, rank as rank_findings
 from tools.base import ToolRegistry
 from tools.registry import result_summary
 
@@ -33,6 +34,9 @@ Rules:
    report in plain English: a ranked list (Critical / High / Medium / Low)
    where each entry names the tool that found it, the file/URL, what the
    problem is, why it matters, and a concrete suggested fix.
+4. The `canonical_counts` and `total_unique_findings` fields in each tool
+   observation are AUTHORITATIVE (computed by the ranking pipeline). Your
+   report's severity totals MUST match them exactly — never invent counts.
 """
 
 
@@ -77,16 +81,23 @@ class Orchestrator:
                     print(f"  -> tool {name}({args})")
                 result = self.registry.dispatch(name, args)
                 state.record(result, args)
-                # Observation fed back to the LLM: short summary + findings.
+                # Observation fed back to the LLM: short summary + findings,
+                # plus AUTHORITATIVE running counts from the ranker so the
+                # LLM's final report stays consistent with the rendered table.
+                running = rank_findings(state.findings)
                 observation = {
                     "summary": result_summary(result),
-                    "findings": result.findings[:50],
+                    "n_findings_this_tool": len(result.findings),
+                    "findings_shown": result.findings[:50],
+                    "findings_truncated": len(result.findings) > 50,
+                    "canonical_counts": rank_counts(running),
+                    "total_unique_findings": len(running),
                     "error": result.error or None,
                 }
                 messages.append({
                     "role": "tool",
                     "tool_call_id": call.get("id", ""),
-                    "content": json.dumps(observation)[:12000],
+                    "content": json.dumps(observation)[:16000],
                 })
         else:
             state.errors.append("Max iterations reached without final report.")

@@ -44,7 +44,8 @@ def _title(f: dict) -> str:
             or "finding")
 
 
-def render(ranked: list, report_text: str = "", verbose: bool = False) -> None:
+def render(ranked: list, report_text: str = "", verbose: bool = False,
+           raw_count: int | None = None) -> None:
     # legacy_windows=False avoids cp1252 charmap crashes on old conhost.
     console = Console(legacy_windows=False)
     console.print()
@@ -63,7 +64,13 @@ def render(ranked: list, report_text: str = "", verbose: bool = False) -> None:
                 Text(_safe(_title(f))[:160], overflow="fold"),
             )
         console.print(table)
-        console.print(counts(ranked))
+        c = counts(ranked)
+        console.print(c)
+        if raw_count is not None:
+            console.print(
+                f"[dim]{raw_count} raw finding(s) -> {len(ranked)} unique "
+                f"problem(s) after dedupe/non-finding removal "
+                f"(sum={sum(c.values())}).[/]")
     else:
         console.print("[bold green]No findings.[/]")
 

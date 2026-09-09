@@ -25,3 +25,8 @@ agent_report.txt
 run_v4flash.log
 
 run_norvic.log
+
+# Run artifacts
+report.json
+export_run.log
+run_*.log

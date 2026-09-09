@@ -25,9 +25,9 @@ def severity_of(f: dict) -> str:
     tool = f.get("tool", "")
     if tool == "bandit":
         return _bandit_sev(f)
-    if tool in ("pip-audit", "npm-audit"):
+    if tool in ("pip-audit", "npm-audit", "npm audit"):
         return _PIP_MAP.get(str(f.get("severity", "")).upper(), "medium")
-    if tool == "link-crawler":
+    if tool == "crawl_links":
         return _LINK_KIND_MAP.get(f.get("kind", "broken"), "low")
     if tool in ("tests", "test_runner"):
         return "medium" if (f.get("status") == "failed"
@@ -47,9 +47,13 @@ def _key(f: dict) -> tuple:
 
 
 def rank(findings: list) -> list:
-    """Dedupe, attach severity, sort Critical→Info. Returns ranked copies."""
+    """Dedupe, drop non-findings, attach severity, sort Critical→Info."""
     seen, out = set(), []
     for f in findings:
+        # Healthy crawl results (kind == "ok") are not findings; including
+        # them made table counts inconsistent with real problems.
+        if f.get("kind") == "ok":
+            continue
         k = _key(f)
         if k in seen:
             continue

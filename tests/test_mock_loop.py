@@ -60,6 +60,32 @@ def main():
     from report.ranker import rank, counts
     ranked = rank(state.findings)
     c = counts(ranked)
+
+    # --- Consistency invariants: numbers must be self-consistent ---
+    assert sum(c.values()) == len(ranked), "counts disagree with ranked list"
+    assert not any(f.get("kind") == "ok" for f in ranked), \
+        "healthy crawl results leaked into findings"
+    keys = [(f.get("tool"), f.get("file") or f.get("url") or f.get("package"),
+             f.get("line") or f.get("line_number"),
+             f.get("check_id") or f.get("name") or f.get("advisory"))
+            for f in ranked]
+    assert len(keys) == len(set(map(tuple, keys))), "duplicate findings in ranked"
+
+    # State must retain full raw results for export.
+    assert len(state.results) == 2, state.results
+    assert state.results[0]["name"] == "bandit_scan"
+    assert "output" in state.results[0]
+    # Healthy vs broken crawl entries: ok must vanish, broken must survive.
+    fake = [
+        {"tool": "crawl_links", "url": "http://healthy.example", "kind": "ok"},
+        {"tool": "crawl_links", "url": "http://dead.example/404", "kind": "broken",
+         "note": "HTTP 404"},
+    ]
+    r2 = rank(state.findings + fake)
+    assert all(f.get("url") != "http://healthy.example" for f in r2)
+    assert any(f.get("url") == "http://dead.example/404" for f in r2)
+    assert sum(counts(r2).values()) == len(r2)
+
     print("state:", state.summary())
     print("counts:", c)
     print("sample finding:", {k: ranked[0].get(k) for k in

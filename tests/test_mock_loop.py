@@ -10,7 +10,8 @@ from agent.detect import detect_project
 from agent.orchestrator import Orchestrator
 from tools.registry import build_default_registry
 
-FIXTURE = os.path.abspath("tests/fixtures/vuln_app")
+FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "fixtures", "vuln_app")
 
 
 class ScriptedLLM:
@@ -67,4 +68,9 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
+
+
+def test_mock_loop():
+    """Pytest entry point so `pytest` runs the full mock-LLM loop."""
     main()
